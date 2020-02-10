@@ -8,6 +8,10 @@ from functools import reduce
 from itertools import product
 from multiprocessing import Pool, Lock
 import logging as log
+from flask import Flask, request
+
+
+app = Flask(__name__)
 
 log.basicConfig(
     format=u'%(filename)s[LINE:%(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s', level=log.DEBUG)
@@ -15,6 +19,7 @@ morph = MorphAnalyzer()
 in_ = 'abcekxhtpomё'
 out = 'авсекхнтроме'
 translation = str.maketrans(in_, out)
+db = None
 
 with open('anchors.json', encoding='utf-8') as f:
     anchors = load(f)
@@ -174,6 +179,20 @@ def process(test, i, db):
             c += 1
 
 
+@app.route('/parse', methods=['GET', 'POST'])
+def flas():
+    global db
+    req = request.json
+    df = pd.read_json(dumps(req), orient='records')
+    res = []
+    for _, t in df.iterrows():
+        try:
+            res.append(main(t, db))
+        except:
+            pass
+    return dumps(res, ensure_ascii=False)
+
+
 def init(l):
     global lock
     lock = l
@@ -181,8 +200,8 @@ def init(l):
 
 if __name__ == "__main__":
     lock = Lock()
-    log.info('Reading xlsx...')
-    test = pd.read_excel('тест_поиск_адреса.xlsx').fillna('')
+    # log.info('Reading xlsx...')
+    # test = pd.read_excel('тест_поиск_адреса.xlsx').fillna('')
     engine = sa.create_engine(
         "postgresql+psycopg2://rwayweb:rwayweb@10.199.13.62/rwayweb")
     log.info('Downloading db...')
@@ -211,22 +230,4 @@ if __name__ == "__main__":
             next = db[db.parentguid.isin(next.aoguid)]
         log.debug(f'{c}/{l}\t{rec.formalname} done')
         c += 1
-
-    # Filter old records
-    old = []
-    with open('temp_res.txt', 'r', encoding='utf-8') as f:
-        for line in f:
-            old.append(loads(line)['id'])
-
-    test = test[~test.id.isin(old)]
-
-    CHUNKS_COUNT = 3
-
-    log.debug(f'Creating {CHUNKS_COUNT} chunks')
-    from math import ceil
-    chunk_size = ceil(len(test) / CHUNKS_COUNT)
-    chunks = [(test.iloc[i*chunk_size:(i+1)*chunk_size], i, db)
-              for i in range(CHUNKS_COUNT)]
-    log.debug('Starting mapping')
-    pool = Pool(4, init, initargs=(lock,))
-    pool.starmap(process, chunks)
+    app.run()
