@@ -12,6 +12,7 @@ from flask import Flask, request
 
 
 app = Flask(__name__)
+TEST_MODE = False
 
 log.basicConfig(
     format=u'%(filename)s[LINE:%(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s', level=log.DEBUG)
@@ -189,8 +190,9 @@ def flas():
     for _, t in df.iterrows():
         try:
             res.append(main(t, db))
-        except:
-            pass
+        except Exception as e:
+            if TEST_MODE:
+                log.exception(e)
     return dumps(res, ensure_ascii=False)
 
 
@@ -206,14 +208,14 @@ if __name__ == "__main__":
     engine = sa.create_engine(
         "postgresql+psycopg2://rwayweb:rwayweb@10.199.13.62/rwayweb")
     log.info('Downloading db...')
-    db = pd.read_sql_query('''SELECT 
+    db = pd.read_sql_query(f'''SELECT 
         aoguid,
         parentguid,
         aolevel,
         formalname,
         shortname
     FROM fias.addrobjects
-    WHERE aolevel <= 7 and actstatus = 1''', engine)
+    WHERE aolevel <= 7 and actstatus = 1 {"LIMIT 10000" if TEST_MODE else ""}''', engine)
     log.info('DB loaded')
     log.info('Creating bi-gramms...')
     # Предобработка фиаса
@@ -231,4 +233,4 @@ if __name__ == "__main__":
             next = db[db.parentguid.isin(next.aoguid)]
         log.debug(f'{c}/{l}\t{rec.formalname} done')
         c += 1
-    app.run('10.199.13.111', 9516)
+    app.run('10.199.13.111', 9516) if not TEST_MODE else app.run()
