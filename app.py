@@ -9,10 +9,11 @@ from itertools import product
 from multiprocessing import Pool, Lock
 import logging as log
 from flask import Flask, request
+from sys import argv
 
 
 app = Flask(__name__)
-TEST_MODE = False
+TEST_MODE = '--debug' in argv
 
 log.basicConfig(
     format=u'%(filename)s[LINE:%(lineno)d]# %(levelname)-8s [%(asctime)s]  %(message)s', level=log.DEBUG)
@@ -119,7 +120,7 @@ def main(rec, db):
             if cities.empty:
                 cstatus = 'predefined'
                 cities = db[db.aolevel.isin(
-                    (4, 5, 6))][db.full1 == rec.city.lower()]
+                    (4, 5, 6))][db.full1 == rec.city.lower()][db.parentguid == m.aoguid]
             for c in cities.itertuples():
                 cflag = True
                 # Восстановление МО
@@ -215,7 +216,7 @@ if __name__ == "__main__":
         formalname,
         shortname
     FROM fias.addrobjects
-    WHERE aolevel <= 7 and actstatus = 1 {"LIMIT 10000" if TEST_MODE else ""}''', engine)
+    WHERE aolevel <= 7 and actstatus = 1 {"LIMIT 1000000" if TEST_MODE else ""}''', engine)
     log.info('DB loaded')
     log.info('Creating bi-gramms...')
     # Предобработка фиаса
