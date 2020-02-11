@@ -140,17 +140,18 @@ def main(rec, db):
                         (data[-1]['subject'], data[-1]['mo'], data[-1]['city'], data[-1]['street']))
 
         ### Запись результатов ###
-                if not sflag:
+
+                if not sflag and 'found' in (sstatus, mostatus, cstatus):
                     data.append({'subject': ' '.join((s.formalname, s.shortname)), 'sstatus': sstatus, 'mo': ' '.join(
                         (m.formalname, m.shortname)), 'mostatus': mostatus, 'city': ' '.join((c.formalname, c.shortname)), 'cstatus': cstatus})
                     data[-1]['full'] = ', '.join((data[-1]
                                                   ['subject'], data[-1]['mo'], data[-1]['city']))
-            if not cflag:
+            if not cflag and 'found' in (sstatus, mostatus):
                 data.append({'subject': ' '.join((s.formalname, s.shortname)), 'sstatus': sstatus, 'mo': ' '.join(
                     (m.formalname, m.shortname)), 'mostatus': mostatus})
                 data[-1]['full'] = ', '.join((data[-1]
                                               ['subject'], data[-1]['mo']))
-        if not mflag:
+        if not mflag and 'found' == sstatus:
             data.append({'subject': ' '.join(
                 (s.formalname, s.shortname)), 'sstatus': sstatus})
             data[-1]['full'] = data[-1]['subject']
@@ -230,4 +231,4 @@ if __name__ == "__main__":
             next = db[db.parentguid.isin(next.aoguid)]
         log.debug(f'{c}/{l}\t{rec.formalname} done')
         c += 1
-    app.run()
+    app.run('10.199.13.111', 9516)
